@@ -106,6 +106,39 @@ def score(name, alerts, rows):
         hit = sum(1 for a in caught if a["label"] == label)
         print(f"    {label:16} {hit}/{total}")
 
+# How much each signal counts. Strong evidence of theft or abuse = 3, weak anomaly = 1.
+WEIGHTS = {
+    "sign-in to high-risk unverified app": 3,
+    "session reused after device was issued a newer session": 3,
+    "session used": 3,                  # past max lifetime
+    "new country": 1,
+    "new network": 1,
+    "unknown device": 1,
+    "token sign-in without interactive MFA": 1,
+}
+ALERT_THRESHOLD = 3
+
+
+def risk_score(reasons):
+    total = 0
+    for reason in reasons:
+        for prefix, weight in WEIGHTS.items():
+            if reason.startswith(prefix):
+                total += weight
+                break
+    return total
+
+
+def detect_scored(rows, tenant, threshold=ALERT_THRESHOLD):
+    """Merge both detectors, then alert only when the combined score reaches the threshold."""
+    merged = merge_alerts(detect_rules(rows, tenant), detect_session_reuse(rows))
+    scored = []
+    for a in merged:
+        s = risk_score(a["reasons"])
+        if s >= threshold:
+            scored.append({**a, "score": s})
+    return scored
+
 
 if __name__ == "__main__":
     seed = int(sys.argv[1]) if len(sys.argv) > 1 else 1

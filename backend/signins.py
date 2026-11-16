@@ -95,7 +95,8 @@ def generate_attacks(tenant, normal_rows):
         day = random.randint(10, 13)
         ts = START + timedelta(days=day, hours=random.randint(0, 23), minutes=random.randint(0, 59))
 
-        # 1. Illicit consent: victim grants the malicious app access
+        # 1. Illicit consent: victim grants the malicious app access.
+        #    The token is issued to the app's client, not the victim's browser session.
         attacks.append({**stolen, "timestamp": ts.isoformat(), "day": day,
                         "app": "app_pdf_tools", "session_id": f"s_consent_{victim}",
                         "device_id": "client_app_pdf_tools",
@@ -123,7 +124,7 @@ def add_normal_noise(normal_rows):
     templates = [r for r in normal_rows if r["day"] >= 10]
     for _ in range(6):
         base = random.choice(templates)
-        kind = random.choice(["travel", "new_phone", "mobile_data"])
+        kind = random.choice(["travel", "new_phone", "mobile_data", "travel_new_phone"])
         row = {**base, "label": "normal"}
         if kind == "travel":
             row.update(country="GB", asn="AS2856 British Telecom",
@@ -131,8 +132,13 @@ def add_normal_noise(normal_rows):
         elif kind == "new_phone":
             row["device_id"] = f"dev_{base['user']}_new"
             row["session_id"] = f"s_{row['device_id']}_{base['day']}"
-        else:
+        elif kind == "mobile_data":
             row.update(asn="AS15802 du", ip=f"5.195.{random.randint(1, 254)}.{random.randint(1, 254)}")
+        else:  # travel_new_phone: two weak signals at once, still innocent
+            row.update(country="GB", asn="AS2856 British Telecom",
+                       ip=f"81.2.{random.randint(1, 254)}.{random.randint(1, 254)}",
+                       device_id=f"dev_{base['user']}_new")
+            row["session_id"] = f"s_{row['device_id']}_{base['day']}"
         noise.append(row)
     return noise
 
