@@ -6,6 +6,7 @@ from pathlib import Path
 from load_tenant import app_risk, load_tenant
 
 BASELINE_DAYS = 10
+MAX_SESSION_DAYS = 3
 
 
 def load_signins(seed):
@@ -54,13 +55,10 @@ def detect_rules(rows, tenant):
     return alerts
 
 
-MAX_SESSION_DAYS = 3
-
-
 def detect_session_reuse(rows):
     """Flag a session used after it was superseded on its device, or past its max lifetime."""
     issued = {}          # session_id -> (day issued, device)
-    latest_issue = {}    # device -> (day, timestamp) of the newest session issued on it
+    latest_issue = {}    # device -> (day, timestamp, session_id) of the newest session on it
     alerts = []
     for r in sorted(rows, key=lambda x: x["timestamp"]):
         sid, dev = r["session_id"], r["device_id"]
@@ -94,6 +92,47 @@ def merge_alerts(*alert_lists):
     return list(merged.values())
 
 
+# How much each signal counts. Strong evidence of theft or abuse = 3, weak anomaly = 1.
+WEIGHTS = {
+    "sign-in to high-risk unverified app": 3,
+    "session reused after device was issued a newer session": 3,
+    "session used": 3,                  # past max lifetime
+    "new country": 1,
+    "new network": 1,
+    "unknown device": 1,
+    "token sign-in without interactive MFA": 1,
+}
+STRONG = ("sign-in to high-risk unverified app",
+          "session reused after device was issued a newer session",
+          "session used")
+ALERT_THRESHOLD = 3
+MFA_DISCOUNT = 0.5   # weak signals count half when the sign-in passed fresh interactive MFA
+
+
+def risk_score(reasons, auth_method=None):
+    """Sum signal weights. If auth_method is given, weak signals are discounted after fresh MFA."""
+    fresh_mfa = auth_method == "password+mfa"
+    total = 0
+    for reason in reasons:
+        for prefix, weight in WEIGHTS.items():
+            if reason.startswith(prefix):
+                strong = reason.startswith(STRONG)
+                total += weight if (strong or not fresh_mfa) else weight * MFA_DISCOUNT
+                break
+    return total
+
+
+def detect_scored(rows, tenant, threshold=ALERT_THRESHOLD, mfa_aware=False):
+    """Merge both detectors, then alert only when the combined score reaches the threshold."""
+    merged = merge_alerts(detect_rules(rows, tenant), detect_session_reuse(rows))
+    scored = []
+    for a in merged:
+        s = risk_score(a["reasons"], a["auth_method"] if mfa_aware else None)
+        if s >= threshold:
+            scored.append({**a, "score": s})
+    return scored
+
+
 def score(name, alerts, rows):
     attacks = [r for r in rows if r["label"] != "normal"]
     caught = [a for a in alerts if a["label"] != "normal"]
@@ -105,39 +144,6 @@ def score(name, alerts, rows):
         total = sum(1 for r in attacks if r["label"] == label)
         hit = sum(1 for a in caught if a["label"] == label)
         print(f"    {label:16} {hit}/{total}")
-
-# How much each signal counts. Strong evidence of theft or abuse = 3, weak anomaly = 1.
-WEIGHTS = {
-    "sign-in to high-risk unverified app": 3,
-    "session reused after device was issued a newer session": 3,
-    "session used": 3,                  # past max lifetime
-    "new country": 1,
-    "new network": 1,
-    "unknown device": 1,
-    "token sign-in without interactive MFA": 1,
-}
-ALERT_THRESHOLD = 3
-
-
-def risk_score(reasons):
-    total = 0
-    for reason in reasons:
-        for prefix, weight in WEIGHTS.items():
-            if reason.startswith(prefix):
-                total += weight
-                break
-    return total
-
-
-def detect_scored(rows, tenant, threshold=ALERT_THRESHOLD):
-    """Merge both detectors, then alert only when the combined score reaches the threshold."""
-    merged = merge_alerts(detect_rules(rows, tenant), detect_session_reuse(rows))
-    scored = []
-    for a in merged:
-        s = risk_score(a["reasons"])
-        if s >= threshold:
-            scored.append({**a, "score": s})
-    return scored
 
 
 if __name__ == "__main__":
@@ -153,3 +159,5 @@ if __name__ == "__main__":
     score("Rules only        ", rules, rows)
     score("Session reuse only", reuse, rows)
     score("Combined          ", combined, rows)
+    score("Scored            ", detect_scored(rows, tenant), rows)
+    score("Scored + MFA      ", detect_scored(rows, tenant, mfa_aware=True), rows)

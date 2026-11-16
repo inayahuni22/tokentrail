@@ -9,7 +9,8 @@ SEEDS = [int(s) for s in sys.argv[1:]] or [1, 2, 3, 4, 5]
 LABELS = ("illicit_consent", "token_replay", "stealth_replay")
 tenant = load_tenant()
 
-totals = {name: Counter() for name in ("Rules", "Session reuse", "Combined (any)", "Scored")}
+NAMES = ("Rules", "Session reuse", "Combined (any)", "Scored", "Scored + MFA")
+totals = {name: Counter() for name in NAMES}
 
 for seed in SEEDS:
     rows = load_signins(seed)
@@ -20,6 +21,7 @@ for seed in SEEDS:
         "Session reuse": reuse,
         "Combined (any)": merge_alerts(rules, reuse),
         "Scored": detect_scored(rows, tenant),
+        "Scored + MFA": detect_scored(rows, tenant, mfa_aware=True),
     }
     attacks = Counter(r["label"] for r in rows if r["label"] != "normal")
 
