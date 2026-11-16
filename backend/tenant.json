@@ -1,0 +1,22 @@
+{
+  "tenant_name": "TokenTrail Demo Corp",
+  "simulation_only": true,
+  "users": [
+    {"id": "u_alice", "name": "Alice Chen", "role": "finance", "home_country": "AE", "privileged": false},
+    {"id": "u_bilal", "name": "Bilal Khan", "role": "engineering", "home_country": "AE", "privileged": false},
+    {"id": "u_carla", "name": "Carla Diaz", "role": "hr", "home_country": "AE", "privileged": false},
+    {"id": "u_dev", "name": "Dev Patel", "role": "it_admin", "home_country": "AE", "privileged": true},
+    {"id": "u_emma", "name": "Emma Novak", "role": "sales", "home_country": "GB", "privileged": false},
+    {"id": "u_farid", "name": "Farid Haddad", "role": "executive", "home_country": "AE", "privileged": true},
+    {"id": "u_grace", "name": "Grace Lim", "role": "engineering", "home_country": "SG", "privileged": false},
+    {"id": "u_hassan", "name": "Hassan Ali", "role": "finance", "home_country": "AE", "privileged": false}
+  ],
+  "apps": [
+    {"id": "app_mail", "name": "Corporate Mail", "publisher_verified": true, "first_party": true, "scopes": ["Mail.Read", "Mail.Send"]},
+    {"id": "app_files", "name": "Corporate Files", "publisher_verified": true, "first_party": true, "scopes": ["Files.Read", "Files.ReadWrite"]},
+    {"id": "app_calendar_sync", "name": "Calendar Sync Pro", "publisher_verified": true, "first_party": false, "scopes": ["Calendars.Read"]},
+    {"id": "app_crm", "name": "SalesBoard CRM", "publisher_verified": true, "first_party": false, "scopes": ["User.Read", "Contacts.Read"]},
+    {"id": "app_pdf_tools", "name": "QuickPDF Helper", "publisher_verified": false, "first_party": false, "scopes": ["Mail.Read", "Files.Read.All", "offline_access"]}
+  ],
+  "high_risk_scopes": ["Mail.Read", "Mail.ReadWrite", "Files.Read.All", "Files.ReadWrite.All", "Directory.ReadWrite.All", "offline_access"]
+}
