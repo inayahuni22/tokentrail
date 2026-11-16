@@ -98,6 +98,7 @@ def generate_attacks(tenant, normal_rows):
         # 1. Illicit consent: victim grants the malicious app access
         attacks.append({**stolen, "timestamp": ts.isoformat(), "day": day,
                         "app": "app_pdf_tools", "session_id": f"s_consent_{victim}",
+                        "device_id": "client_app_pdf_tools",
                         "label": "illicit_consent"})
 
         # 2. Obvious token replay: stolen session used from attacker infrastructure, no MFA
