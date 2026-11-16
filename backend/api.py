@@ -60,10 +60,11 @@ def apps():
     result = []
     for a in TENANT["apps"]:
         risky_scopes, flags = app_risk(a, TENANT["high_risk_scopes"])
+        if a["first_party"]:
+            risky_scopes = []  # first-party apps are trusted, so their scopes aren't flagged
         result.append({**a, "high_risk_scopes": risky_scopes, "risk_flags": flags,
                        "risky": bool(flags)})
     return {"apps": result}
-
 
 @app.get("/users")
 def users(seed: int = 1, mode: str = "scored_mfa"):

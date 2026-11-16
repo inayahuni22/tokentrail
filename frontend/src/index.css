@@ -1,0 +1,49 @@
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/500.css";
+@import "tailwindcss";
+
+@theme {
+  /* Surfaces */
+  --color-canvas: #efebe2;
+  --color-panel: #faf8f3;
+  --color-raised: #e7e1d4;
+  --color-active: #ddd4c1;
+  --color-line: #cfc6b3;
+
+  /* Text */
+  --color-ink: #17150f;
+  --color-muted: #655e50;
+  --color-faint: #968d7a;
+
+  /* Semantic */
+  --color-danger: #b8321a;
+  --color-warning: #9a6200;
+  --color-ok: #2e6a3a;
+  --color-session: #27499a;
+
+  /* Tints */
+  --color-danger-row: #f6ece6;
+  --color-danger-pill: #f2e0d9;
+  --color-session-chip: #dde1ea;
+
+  /* Type */
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+
+  /* 2px corners everywhere */
+  --radius-tt: 2px;
+}
+
+@layer base {
+  html,
+  body {
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    -webkit-font-smoothing: antialiased;
+  }
+}

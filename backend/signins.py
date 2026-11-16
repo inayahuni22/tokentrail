@@ -26,6 +26,11 @@ ATTACKER_NETWORKS = [
 ]
 
 
+def day_of(ts):
+    """Day index derived from the timestamp, so day and date can never disagree."""
+    return (ts - START).days
+
+
 def user_profile(user):
     """Each user gets a stable home network and one or two devices."""
     prefix, asn = random.choice(NETWORKS[user["home_country"]])
@@ -93,18 +98,19 @@ def generate_attacks(tenant, normal_rows):
         their_sessions = [r for r in normal_rows if r["user"] == victim and r["day"] < 10]
         stolen = random.choice(their_sessions)
         day = random.randint(10, 13)
-        ts = START + timedelta(days=day, hours=random.randint(0, 23), minutes=random.randint(0, 59))
+        ts = START + timedelta(days=day, hours=random.randint(0, 21), minutes=random.randint(0, 59))
 
         # 1. Illicit consent: victim grants the malicious app access.
         #    The token is issued to the app's client, not the victim's browser session.
-        attacks.append({**stolen, "timestamp": ts.isoformat(), "day": day,
+        attacks.append({**stolen, "timestamp": ts.isoformat(), "day": day_of(ts),
                         "app": "app_pdf_tools", "session_id": f"s_consent_{victim}",
                         "device_id": "client_app_pdf_tools",
                         "label": "illicit_consent"})
 
         # 2. Obvious token replay: stolen session used from attacker infrastructure, no MFA
+        replay_ts = ts + timedelta(hours=2)
         prefix, asn, country = random.choice(ATTACKER_NETWORKS)
-        attacks.append({**stolen, "timestamp": (ts + timedelta(hours=2)).isoformat(), "day": day,
+        attacks.append({**stolen, "timestamp": replay_ts.isoformat(), "day": day_of(replay_ts),
                         "ip": prefix + f"{random.randint(1, 254)}.{random.randint(1, 254)}",
                         "asn": asn, "country": country, "device_id": "unknown",
                         "auth_method": "token", "label": "token_replay"})
@@ -112,7 +118,7 @@ def generate_attacks(tenant, normal_rows):
         # 3. Stealth token replay: victim's own country, ISP, device and auth method.
         #    Only the IP and the reused old session differ.
         stealth_ts = START + timedelta(days=day, hours=random.randint(9, 17))
-        attacks.append({**stolen, "timestamp": stealth_ts.isoformat(), "day": day,
+        attacks.append({**stolen, "timestamp": stealth_ts.isoformat(), "day": day_of(stealth_ts),
                         "ip": stolen["ip"].rsplit(".", 1)[0] + f".{random.randint(1, 254)}",
                         "label": "stealth_replay"})
     return attacks
